@@ -1,0 +1,98 @@
+[project]
+name = "bug report"
+authors = [{ name = "Jos Verlinde", email = "jos_verlinde@hotmail.com"}]
+
+description = "Bug report for ty cycle issue"
+version = "0.1.0"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: MicroPython",
+  "License :: OSI Approved :: MIT License"
+]
+readme = "readme.md"
+license = "MIT"
+
+[project.optional-dependencies]
+# install to folder typings
+# uv pip install -r pyproject.toml --extra stubs --target typings 
+stubs = [
+  "micropython-esp32-stubs"
+]
+
+
+# ###################################################################
+# pyright options for MicroPython
+# ###################################################################
+[tool.pyright]
+# places to check
+include = ["src"]
+extraPaths = ["src/lib"]
+# how to check
+typeCheckingMode = "standard"
+reportMissingModuleSource = "none"
+reportOptionalMemberAccess = "information"
+reportOptionalCall = "information"
+reportDeprecated = "warning"
+
+pythonPlatform = "Linux"
+pythonVersion = "3.8"
+defineConstant = { MICROPYTHON_VERSION = "1.27", sys.implementation.version = "1.27" }
+
+# what to use 
+stubPath = "typings"
+typeshedPath = "typings"
+# things not to check
+ignore = ["**/typings"]
+exclude = [
+    ".*", 
+    "__*", 
+    "**/typings",
+    "**/node_modules", "**/__pycache__", ".venv",
+]
+
+# ###################################################################
+# mypy options for MicroPython
+# ###################################################################
+[tool.mypy]
+# places to check
+files = "src/*.py"
+mypy_path = "src/lib,typings"
+# how to check
+platform = "linux"
+follow_imports = "silent"
+follow_imports_for_stubs = true
+# what to use
+custom_typeshed_dir = "typings" # allow mypy to use micropython-stdlib
+# things not to check
+exclude = [
+    ".*",  
+    "__*",  
+    "typings[\\/].*", # TOML basic string 
+]
+# ###################################################################
+# ty
+# https://docs.astral.sh/ty/reference/configuration/
+# ###################################################################
+
+[tool.ty.src]
+include = ["src"]
+exclude = ["typings"]
+
+[tool.ty.environment]
+extra-paths = ["src/lib", "typings"]
+python-platform = "linux"
+python-version = "3.8"
+typeshed = "typings"
+
+# [tool.ty.rules]
+# # all = "warn"
+
+# [[tool.ty.overrides]]
+# include = [
+#     "src",
+# ]
+# exclude = [
+#     "typings",
+#     ".venv",
+# ]
+# ###################################################################
