@@ -8,6 +8,85 @@ $env:RUST_BACKTRACE=1
 ty check
 ```
 
+### expected result: 
+
+`ty check` should complete without panicking
+
+### actual result:
+
+```
+error[panic]: Panicked at C:\Users\runneradmin\.cargo\git\checkouts\salsa-e6f3bb7c2a062968\53421c2\src\function\fetch.rs:178:21 when checking `D:\mypython\!-stubtestprojects\ty_cycle_bug\src\report.py`: `dependency graph cycle when querying Type < 'db >::try_call_dunder_get_(Id(8c00)), set cycle_fn/cycle_initial to fixpoint iterate.
+```
+
+Both mypy and pyright complete without errors on the same codebase, so this seems to be a ty specific issue.
+likely the ty configuration in pyproject.toml could be adjusted to avoid this by not including the `typing folder`,
+but that results in ty not being able to find several stubs in the `typings` folder, and that is the issue I was trying to solve.
+
+without the `typings` folder, ty reports a lot of errors about missing stubs, and that is not ideal either.
+```
+(ty_cycle_bug) PS D:\mypython\!-stubtestprojects\ty_cycle_bug> ty check
+error[unresolved-import]: Cannot resolve imported module `uasyncio`
+ --> src\report.py:1:6
+  |
+1 | from uasyncio import sleep_ms
+  |      ^^^^^^^^
+2 | from usys import print_exception
+3 | from uos import mount, umount, statvfs
+  |
+info: Searched in the following paths during module resolution:
+info:   1. D:\mypython\!-stubtestprojects\ty_cycle_bug\src\lib (extra search path specified on the CLI or in your config file)
+info:   2. D:\mypython\!-stubtestprojects\ty_cycle_bug\src (first-party code)
+info:   3. D:\mypython\!-stubtestprojects\ty_cycle_bug (first-party code)
+info:   4. D:\mypython\!-stubtestprojects\ty_cycle_bug\typings\stdlib (custom stdlib stubs specified on the CLI or in your config file)
+info:   5. D:\mypython\!-stubtestprojects\ty_cycle_bug\.venv\Lib\site-packages (site-packages)
+info: make sure your Python environment is properly configured: https://docs.astral.sh/ty/modules/#python-environment
+info: rule `unresolved-import` is enabled by default
+
+error[unresolved-import]: Cannot resolve imported module `usys`
+ --> src\report.py:2:6
+  |
+1 | from uasyncio import sleep_ms
+2 | from usys import print_exception
+  |      ^^^^
+3 | from uos import mount, umount, statvfs
+  |
+info: Searched in the following paths during module resolution:
+info:   1. D:\mypython\!-stubtestprojects\ty_cycle_bug\src\lib (extra search path specified on the CLI or in your config file)
+info:   2. D:\mypython\!-stubtestprojects\ty_cycle_bug\src (first-party code)
+info:   3. D:\mypython\!-stubtestprojects\ty_cycle_bug (first-party code)
+info:   4. D:\mypython\!-stubtestprojects\ty_cycle_bug\typings\stdlib (custom stdlib stubs specified on the CLI or in your config file)
+info:   5. D:\mypython\!-stubtestprojects\ty_cycle_bug\.venv\Lib\site-packages (site-packages)
+info: make sure your Python environment is properly configured: https://docs.astral.sh/ty/modules/#python-environment
+info: rule `unresolved-import` is enabled by default
+
+error[unresolved-import]: Cannot resolve imported module `uos`
+ --> src\report.py:3:6
+  |
+1 | from uasyncio import sleep_ms
+2 | from usys import print_exception
+3 | from uos import mount, umount, statvfs
+  |      ^^^
+4 |
+5 | mount("/sd", "/sdcard")
+  |
+info: Searched in the following paths during module resolution:
+info:   1. D:\mypython\!-stubtestprojects\ty_cycle_bug\src\lib (extra search path specified on the CLI or in your config file)
+info:   2. D:\mypython\!-stubtestprojects\ty_cycle_bug\src (first-party code)
+info:   3. D:\mypython\!-stubtestprojects\ty_cycle_bug (first-party code)
+info:   4. D:\mypython\!-stubtestprojects\ty_cycle_bug\typings\stdlib (custom stdlib stubs specified on the CLI or in your config file)
+info:   5. D:\mypython\!-stubtestprojects\ty_cycle_bug\.venv\Lib\site-packages (site-packages)
+info: make sure your Python environment is properly configured: https://docs.astral.sh/ty/modules/#python-environment
+info: rule `unresolved-import` is enabled by default
+```
+
+If i install the stubs into the .venv, ty can find the stubs and does not report any errors, but the cycle panic still occurs.
+
+It may be that the cycle is caused by some of the stubs in the `typings` folder, but I have not been able to narrow it down yet.
+If you have a suggestion for that that does not break pyright or mypy, im happy to try it out and update/improve the stubs.
+
+
+
+
 Environment:
 OS: Windows_NT x64 10.0.26200
 - no .venv folder, ty is installed globally with uv tool install ty
@@ -396,4 +475,28 @@ info: query stacktrace:
              at crates\ty_python_semantic\src\types\infer.rs:185
   36: check_file_impl(Id(c00))
              at crates\ty_project\src\lib.rs:569
+```
+
+
+### pyright and mypy
+
+reports are not identical, due to a slightly different configuration, but both report no errors on the same codebase
+
+
+
+```
+(ty_cycle_bug) PS D:\mypython\!-stubtestprojects\ty_cycle_bug> mypy .\src\report.py
+Success: no issues found in 1 source file
+(ty_cycle_bug) PS D:\mypython\!-stubtestprojects\ty_cycle_bug> mypy
+Success: no issues found in 1 source file
+(ty_cycle_bug) PS D:\mypython\!-stubtestprojects\ty_cycle_bug> pyright
+Defined constant "sys" must be associated with a boolean or string value.
+d:\mypython\!-stubtestprojects\ty_cycle_bug\src\report.py
+  d:\mypython\!-stubtestprojects\ty_cycle_bug\src\report.py:3:17 - warning: The function "mount" is deprecated
+    The `mount` function is deprecated, use `vfs.mount` instead. (reportDeprecated)
+  d:\mypython\!-stubtestprojects\ty_cycle_bug\src\report.py:3:24 - warning: The function "umount" is deprecated
+    The `umount` function is deprecated, use `vfs.umount` instead. (reportDeprecated)
+  d:\mypython\!-stubtestprojects\ty_cycle_bug\src\report.py:5:1 - warning: The function "mount" is deprecated
+    The `mount` function is deprecated, use `vfs.mount` instead. (reportDeprecated)
+0 errors, 3 warnings, 0 informations
 ```

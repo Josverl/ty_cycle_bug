@@ -79,7 +79,9 @@ include = ["src"]
 exclude = ["typings"]
 
 [tool.ty.environment]
+# extra-paths = ["src/lib"]
 extra-paths = ["src/lib", "typings"]
+
 python-platform = "linux"
 python-version = "3.8"
 typeshed = "typings"
